@@ -1,9 +1,20 @@
 package com.example.oauth2springreactiveexemple.controllers.exceptions;
 
-
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
-
-@ResponseStatus(value = HttpStatus.UNAUTHORIZED)
 public class UnauthorizeException extends RuntimeException {
+	
+	private static final long serialVersionUID = 1L;
+	
+	public UnauthorizeException() {}
+	
+	public UnauthorizeException(String message) {
+		super(message);
+	}
+	
+	public UnauthorizeException(String message, Throwable cause) {
+		super(message, cause);
+	}
+	
+	public UnauthorizeException(Throwable cause) {
+		super(cause);
+	}
 }

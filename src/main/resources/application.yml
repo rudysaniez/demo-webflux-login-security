@@ -1,5 +1,6 @@
 server:
   port: 8080
+
 logging:
   level:
     org:
@@ -7,14 +8,25 @@ logging:
         security:
           oauth2: DEBUG
           jwt: DEBUG
+
 spring:
+  jackson:
+    deserialization:
+      accept-single-value-as-array: true
+    serialization:
+      write-dates-as-timestamps: false
+    generator:
+      write-numbers-as-strings: false
+    default-property-inclusion: NON_NULL #permits to not return fields with null value.
+    date-format: yyyy-MM-dd'T'HH:mm:ssZ
+
   security:
     oauth2:
       client:
         registration:
           adeo:
-            client-id: ${OAUTH2_ADEO_CLIENT_ID}
-            client-secret: ${OAUTH2_ADEO_SECRET_ID}
+            client-id: ${OAUTH2_CLIENT_ID}
+            client-secret: ${OAUTH2_SECRET_ID}
             scope:
               - openid
               - email
@@ -23,12 +35,17 @@ spring:
               - advprofile
             authorization-grant-type: authorization_code
             client-authentication-method: basic
-            #redirect-uri-template: http://localhost:9006/login/oauth2/code/adeo
+            #redirect-uri: http://localhost:8080/login/oauth2/code/adeo
         provider:
           adeo:
-            token-uri: ${OAUTH2_ADEO_TOKEN_URI}
-            authorization-uri: ${OAUTH2_ADEO_AUTHORIZATION_URI}
-            user-info-uri: ${OAUTH2_ADEO_USER_INFO_URI}
-            user-name-attribute: ${OAUTH2_ADEO_USER_NAME_ATTRIBUTE}
-            issuer-uri: ${OAUTH2_ADEO_ISSUER_URI}
-            jwk-set-uri: ${OAUTH2_ADEO_JWK_SET_URI}
+            authorization-uri: ${OAUTH2_AUTHORIZATION_URI}
+            token-uri: ${OAUTH2_TOKEN_URI}
+            user-info-uri: ${OAUTH2_USER_INFO_URI}
+            user-name-attribute: ${OAUTH2_USER_NAME_ATTRIBUTE}
+            issuer-uri: ${OAUTH2_ISSUER_URI}
+            jwk-set-uri: ${OAUTH2_JWK_SET_URI}
+      resourceserver:
+        opaquetoken:
+          client-id: ${OAUTH2_CLIENT_ID}
+          client-secret: ${OAUTH2_SECRET_ID}
+          introspection-uri: ${OAUTH2_INTROSPECT_URI}
