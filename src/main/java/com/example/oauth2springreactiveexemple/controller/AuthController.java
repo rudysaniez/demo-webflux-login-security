@@ -1,5 +1,6 @@
-package com.example.oauth2springreactiveexemple.controllers;
+package com.example.oauth2springreactiveexemple.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,11 +12,10 @@ import org.springframework.security.oauth2.client.web.server.ServerOAuth2Authori
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.server.resource.introspection.ReactiveOpaqueTokenIntrospector;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 
-import com.example.oauth2springreactiveexemple.controllers.exceptions.UnauthorizeException;
+import com.example.oauth2springreactiveexemple.controller.exception.UnauthorizeException;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,14 +26,12 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
-@RequestMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
 public class AuthController {
 
-    private ServerOAuth2AuthorizedClientRepository authorizedClientRepository;
-    private ReactiveOpaqueTokenIntrospector nimbus;
+    private final ServerOAuth2AuthorizedClientRepository authorizedClientRepository;
+    private final ReactiveOpaqueTokenIntrospector nimbus;
     
-    public AuthController(ServerOAuth2AuthorizedClientRepository authorizedClientRepository,
-    		ReactiveOpaqueTokenIntrospector nimbus) {
+    public AuthController(ServerOAuth2AuthorizedClientRepository authorizedClientRepository, ReactiveOpaqueTokenIntrospector nimbus) {
     	
         this.authorizedClientRepository = authorizedClientRepository;
         this.nimbus = nimbus;
@@ -45,7 +43,7 @@ public class AuthController {
      * @return {@link Claims}
      */
     @GetMapping(value = "/claims", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Claims>> index(ServerWebExchange exchange, @AuthenticationPrincipal Mono<OAuth2User> oauth2User) {
+    public Mono<ResponseEntity<Claims>> claims(ServerWebExchange exchange, @AuthenticationPrincipal Mono<OAuth2User> oauth2User) {
     	
     	// @formatter:off
         return oauth2User.
@@ -60,7 +58,7 @@ public class AuthController {
      * @return {@link Whoami}
      */
     @GetMapping(value = "/whoami", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Whoami>> index(@AuthenticationPrincipal Mono<OAuth2User> oauth2User) {
+    public Mono<ResponseEntity<Whoami>> whoami(@AuthenticationPrincipal Mono<OAuth2User> oauth2User) {
     	
     	// @formatter:off
         return oauth2User
@@ -73,13 +71,13 @@ public class AuthController {
     /**
      * @param exchange
      * @param oauth2User
-     * @return {@link Jwt}
+     * @return {@link JwtService}
      */
-    @GetMapping(value = {"/identification", "/"})
-    public Mono<ResponseEntity<Jwt>> identification(ServerWebExchange exchange, @AuthenticationPrincipal Mono<OAuth2User> oauth2User) {
+    @GetMapping(value = "/auth", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Auth>> auth(ServerWebExchange exchange, @AuthenticationPrincipal Mono<OAuth2User> oauth2User) {
     	
     	// @formatter:off
-        Mono<Jwt> result = ReactiveSecurityContextHolder.
+        Mono<Auth> auth = ReactiveSecurityContextHolder.
                 getContext().
                 map(SecurityContext::getAuthentication).
                 filter(authentication -> authentication instanceof OAuth2AuthenticationToken).
@@ -91,11 +89,11 @@ public class AuthController {
                 map(accessToken -> accessToken.getTokenValue()).
                 doOnNext(log::info).
                 switchIfEmpty(Mono.error(new UnauthorizeException("The token is empty."))).
-                map(accessToken -> Jwt.builder().access_token(accessToken).build()).
+                map(accessToken -> Auth.builder().access_token(accessToken).build()).
         		log();
         
-        return Mono.zip(values -> aggregate((Jwt)values[0], (OAuth2User)values[1]), result, oauth2User).
-        	map(jwt -> ResponseEntity.ok(jwt)).
+        return Mono.zip(values -> aggregate((Auth)values[0], (OAuth2User)values[1]), auth, oauth2User).
+        	map(a -> ResponseEntity.ok(a)).
         	log();
      // @formatter:on
     }
@@ -109,7 +107,7 @@ public class AuthController {
     public Mono<ResponseEntity<Introspect>> introspect(ServerWebExchange exchange, @AuthenticationPrincipal Mono<OAuth2User> oauth2User) {
     	
     	// @formatter:off
-    	return identification(exchange, oauth2User).
+    	return auth(exchange, oauth2User).
     		map(re -> re.getBody()).
     		flatMap(token -> nimbus.introspect(token.getAccess_token())).
     		log().
@@ -122,13 +120,11 @@ public class AuthController {
     	// @formatter:on
     }
     
-    /**
-     * Allows recover informations user
-     *
-     * @param oauth2UserMono
-     * @return informations if user authenticated, or unauthorize exception
-     */
-    @GetMapping(value = "/info")
+   /**
+    * @param oauth2User
+    * @return {@link Void void}, just the {@link HttpStatus http status} is important here.
+    */
+    @GetMapping(value = "/info", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Void>> info(@AuthenticationPrincipal Mono<OAuth2User> oauth2User) {
     	
         if(oauth2User == null) {
@@ -139,39 +135,39 @@ public class AuthController {
     }
     
     /**
-     * @param jwt
-     * @param user
-     * @return {@link Jwt}
+     * @param auth
+     * @param oauth2User
+     * @return {@link Auth authentification information}
      */
-    private Jwt aggregate(Jwt jwt, OAuth2User user) {
+    private Auth aggregate(Auth auth, OAuth2User oauth2User) {
     	
-    	if(user != null && user.getAttributes() != null) {
-    		
-    		log.info(" > {}.", user.getAttributes().toString());
-    		
-    		jwt.setClaims(claims(user));
-    	}
+    	if(oauth2User != null && oauth2User.getAttributes() != null)
+    		auth.setClaims(claims(oauth2User));
     	
-    	return jwt;
+    	return auth;
     }
     
     /**
-     * @param user
+     * @param oauth2User
      * @return {@link Claims}
      */
-    private Claims claims(OAuth2User user) {
+    private Claims claims(OAuth2User oauth2User) {
     	
+    	// @formatter:off
     	return Claims.builder().
-			email(user.getAttribute("email")).
-			ldap(user.getAttribute("sub")).
-			name(user.getAttribute("name")).
-			preferredlanguage(user.getAttribute("preferredlanguage")).
-			departmentnumber(user.getAttribute("departmentnumber")).
+			email(oauth2User.getAttribute("email")).
+			ldap(oauth2User.getAttribute("sub")).
+			name(oauth2User.getAttribute("name")).
+			preferredlanguage(oauth2User.getAttribute("preferredlanguage")).
+			departmentnumber(oauth2User.getAttribute("departmentnumber")).
+			privbusinesscategorycode(oauth2User.getAttribute("privbusinesscategorycode")).
 			build();
+    	// @formatter:on
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
-    public static class Jwt {
+    public static class Auth {
+    	
     	private String access_token;
     	private Claims claims;
     }
@@ -185,6 +181,7 @@ public class AuthController {
     	private String title;
     	private String preferredlanguage;
     	private String departmentnumber;
+    	private String privbusinesscategorycode;
     }
     
     @Data @NoArgsConstructor @AllArgsConstructor @Builder

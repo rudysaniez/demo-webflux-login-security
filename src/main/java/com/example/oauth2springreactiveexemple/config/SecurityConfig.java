@@ -1,6 +1,7 @@
 package com.example.oauth2springreactiveexemple.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.autoconfigure.security.reactive.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -16,6 +17,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.adapter.ForwardedHeaderTransformer;
 
+import com.example.oauth2springreactiveexemple.Management;
 import com.example.oauth2springreactiveexemple.introspector.Nimbus2000ReactiveOpaqueTokenIntrospector;
 
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,7 @@ public class SecurityConfig {
             and().
             	csrf().disable().
             authorizeExchange().
+            	matchers(EndpointRequest.to(Management.INFO, Management.HEALTH)).permitAll().
             	pathMatchers("/info").permitAll().
             anyExchange().
             	authenticated().

@@ -1,4 +1,4 @@
-package com.example.oauth2springreactiveexemple.controllers.exceptions;
+package com.example.oauth2springreactiveexemple.controller.exception;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
