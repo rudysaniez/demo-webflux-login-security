@@ -1,4 +1,4 @@
-package com.example.oauth2springreactiveexemple.controllers.exceptions;
+package com.example.oauth2springreactiveexemple.controller.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;

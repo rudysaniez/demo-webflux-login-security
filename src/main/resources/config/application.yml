@@ -1,13 +1,24 @@
-server:
-  port: 8080
 
 logging:
   level:
-    org:
-      springframework:
-        security:
-          oauth2: DEBUG
-          jwt: DEBUG
+    root: INFO
+    '[org.springframework.security.oauth2]': DEBUG
+    '[org.springframework.security.oauth2.jwt]': DEBUG
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info,health,metrics
+      base-path: /management
+  endpoint:
+    health:
+      show-details: always
+      cache:
+        time-to-live: 10000ms
 
 spring:
   jackson:
@@ -49,3 +60,16 @@ spring:
           client-id: ${OAUTH2_CLIENT_ID}
           client-secret: ${OAUTH2_SECRET_ID}
           introspection-uri: ${OAUTH2_INTROSPECT_URI}
+
+  application:
+    name: webflux-login-oauth2
+
+info.application.name: ${spring.application.name}
+info.application.developer.name: michaeljordan
+info.application.developer.email: michaeljordan@bulls.com
+info.team.domain: TheUnitedCenter
+info.team.email: team.bulls@bulls.com
+
+microservice:
+  core:
+    supplier-uri: ${SUPPLIER_API_URI}
